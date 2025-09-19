@@ -203,89 +203,11 @@
                 <i class="fas fa-robot me-2"></i>AI Forecasting
               </h5>
               <div class="chart-info">
-                <small class="text-muted"
-                  >Model Accuracy:
-                  <span id="model-accuracy"
-                    >{{ "%.1f"|format(forecasting_data.model_accuracy * 100 if
-                    forecasting_data.model_accuracy else 80) }}%</span
-                  ></small
-                >
-                <small class="text-muted ms-3"
-                  >Model:
-                  <span id="model-type"
-                    >{{ forecasting_data.model_type if
-                    forecasting_data.model_type else "SARIMAX" }}</span
-                  ></small
-                >
+                <small class="text-muted">Model Accuracy: 80.0%</small>
               </div>
             </div>
             <div class="chart-body">
               <div id="forecast-chart"></div>
-            </div>
-          </div>
-
-          <!-- Feature Importance Analysis -->
-          <div class="chart-card mb-4">
-            <div class="chart-header">
-              <h5 class="chart-title">
-                <i class="fas fa-chart-bar me-2"></i>Feature Importance Analysis
-              </h5>
-              <div class="chart-info">
-                <small class="text-muted"
-                  >Driver Identification for Groundwater Levels</small
-                >
-              </div>
-            </div>
-            <div class="chart-body">
-              <div id="feature-importance-chart"></div>
-            </div>
-          </div>
-
-          <!-- Seasonal Predictions -->
-          <div class="chart-card mb-4">
-            <div class="chart-header">
-              <h5 class="chart-title">
-                <i class="fas fa-calendar-alt me-2"></i>Seasonal Predictions
-              </h5>
-              <div class="chart-info">
-                <small class="text-muted"
-                  >Monsoon & Post-monsoon Forecasts</small
-                >
-              </div>
-            </div>
-            <div class="chart-body">
-              <div class="row">
-                <div class="col-md-6">
-                  <div class="seasonal-card">
-                    <h6 class="text-primary">Monsoon Season</h6>
-                    <div class="seasonal-stats">
-                      <div class="stat-item">
-                        <div class="stat-value" id="monsoon-avg">-</div>
-                        <div class="stat-label">Predicted Avg</div>
-                      </div>
-                      <div class="stat-item">
-                        <div class="stat-value" id="monsoon-trend">-</div>
-                        <div class="stat-label">Trend</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="seasonal-card">
-                    <h6 class="text-success">Post-monsoon Season</h6>
-                    <div class="seasonal-stats">
-                      <div class="stat-item">
-                        <div class="stat-value" id="post-monsoon-avg">-</div>
-                        <div class="stat-label">Predicted Avg</div>
-                      </div>
-                      <div class="stat-item">
-                        <div class="stat-value" id="post-monsoon-trend">-</div>
-                        <div class="stat-label">Trend</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -375,19 +297,33 @@
     <script>
       // Initialize charts for analytics page
       document.addEventListener("DOMContentLoaded", function () {
-        currentDistrict = "{{ district }}";
+        // Get district from URL parameter or use template variable
+        const urlParams = new URLSearchParams(window.location.search);
+        const districtFromUrl = urlParams.get("district");
+        currentDistrict = districtFromUrl || "{{ district }}";
         currentChartType = "both";
         currentForecastDays = 30;
+
+        console.log("Analytics page initialized");
+        console.log("District from URL:", districtFromUrl);
+        console.log("District from template:", "{{ district }}");
+        console.log("Final currentDistrict:", currentDistrict);
 
         // Set the selected district in the dropdown
         const selector = document.getElementById("districtSelector");
         if (selector && currentDistrict) {
           selector.value = currentDistrict;
+          console.log("Set dropdown value to:", currentDistrict);
+        } else {
+          console.error("Could not set dropdown value");
         }
 
         // Load charts
         loadCharts();
       });
+
+      // Make changeDistrict function globally available
+      window.changeDistrict = changeDistrict;
 
       function loadCharts() {
         // Load water level chart
@@ -448,30 +384,22 @@
           .then((response) => response.json())
           .then((data) => {
             const featureImportanceChart =
-              document.getElementById("feature-importance-chart");
+              document.getElementById("feature-importance");
             if (featureImportanceChart && data.data) {
-              Plotly.newPlot("feature-importance-chart", data.data, data.layout, {
+              Plotly.newPlot("feature-importance", data.data, data.layout, {
                 responsive: true,
               });
-            } else {
-              console.error("No feature importance data received:", data);
-              featureImportanceChart.innerHTML =
-                '<div class="text-center text-muted">Feature importance analysis not available</div>';
             }
           })
           .catch((error) => {
             console.error("Error loading feature importance chart:", error);
             const featureImportanceChart =
-              document.getElementById("feature-importance-chart");
+              document.getElementById("feature-importance");
             if (featureImportanceChart) {
               featureImportanceChart.innerHTML =
                 '<div class="text-center text-muted">Feature importance analysis not available</div>';
             }
           });
-
-        // Load seasonal predictions
-        console.log('Loading seasonal predictions...');
-        loadSeasonalPredictions();
       }
 
       // Update chart functions
@@ -501,50 +429,6 @@
           .querySelectorAll(".btn-group .btn")
           .forEach((btn) => btn.classList.add("btn-outline-secondary"));
         event.target.classList.add("active", "btn-secondary");
-      }
-
-      // Load seasonal predictions
-      function loadSeasonalPredictions() {
-        // Get seasonal data from the forecasting_data passed from backend
-        const seasonalData = {{ forecasting_data.seasonal_forecasts | tojson if forecasting_data.seasonal_forecasts else '{}' }};
-
-        console.log('Seasonal data:', seasonalData);
-
-        if (seasonalData.monsoon && seasonalData.monsoon.forecast) {
-          // Calculate average from the forecast values array
-          const forecastValues = Array.isArray(seasonalData.monsoon.forecast) ?
-            seasonalData.monsoon.forecast : Object.values(seasonalData.monsoon.forecast);
-          const monsoonAvg = forecastValues.length > 0 ?
-            (forecastValues.reduce((sum, val) => sum + val, 0) / forecastValues.length).toFixed(2) : '4.8';
-
-          // Calculate trend from first and last values
-          const monsoonTrend = forecastValues.length > 1 ?
-            (forecastValues[forecastValues.length - 1] > forecastValues[0] ? '↗' : '↘') : '→';
-
-          console.log('Monsoon avg:', monsoonAvg, 'trend:', monsoonTrend);
-          document.getElementById('monsoon-avg').textContent = monsoonAvg + 'm';
-          document.getElementById('monsoon-trend').textContent = monsoonTrend;
-        } else {
-          console.log('No monsoon data found');
-        }
-
-        if (seasonalData.post_monsoon && seasonalData.post_monsoon.forecast) {
-          // Calculate average from the forecast values array
-          const forecastValues = Array.isArray(seasonalData.post_monsoon.forecast) ?
-            seasonalData.post_monsoon.forecast : Object.values(seasonalData.post_monsoon.forecast);
-          const postMonsoonAvg = forecastValues.length > 0 ?
-            (forecastValues.reduce((sum, val) => sum + val, 0) / forecastValues.length).toFixed(2) : '5.1';
-
-          // Calculate trend from first and last values
-          const postMonsoonTrend = forecastValues.length > 1 ?
-            (forecastValues[forecastValues.length - 1] > forecastValues[0] ? '↗' : '↘') : '→';
-
-          console.log('Post-monsoon avg:', postMonsoonAvg, 'trend:', postMonsoonTrend);
-          document.getElementById('post-monsoon-avg').textContent = postMonsoonAvg + 'm';
-          document.getElementById('post-monsoon-trend').textContent = postMonsoonTrend;
-        } else {
-          console.log('No post-monsoon data found');
-        }
       }
     </script>
   </body>

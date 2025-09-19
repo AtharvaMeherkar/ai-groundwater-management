@@ -298,27 +298,16 @@ def forecast_district(df: pd.DataFrame, district: str, horizon_days: int = 30) -
             'Upper_Bound': forecast_result['confidence_interval'].iloc[:, 1].values
         })
         
-        # Convert pandas Series to lists for JSON serialization
-        def convert_series_to_list(obj):
-            if hasattr(obj, 'tolist'):
-                return obj.tolist()
-            elif isinstance(obj, dict):
-                return {k: convert_series_to_list(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [convert_series_to_list(item) for item in obj]
-            else:
-                return obj
-        
         return {
             'forecast_df': forecast_df,
             'accuracy': forecast_result['accuracy'],
             'model_type': forecast_result['model_type'],
             'seasonal_forecasts': {
-                'monsoon': convert_series_to_list(monsoon_forecast),
-                'post_monsoon': convert_series_to_list(post_monsoon_forecast)
+                'monsoon': monsoon_forecast,
+                'post_monsoon': post_monsoon_forecast
             },
-            'feature_importance': convert_series_to_list(feature_importance),
-            'drivers': convert_series_to_list(drivers),
+            'feature_importance': feature_importance,
+            'drivers': drivers,
             'forecast_periods': {
                 '30_day': horizon_days,
                 '365_day': 365

@@ -615,10 +615,19 @@ function displayBudgetResults(data) {
 
 // District Selection Functions
 function changeDistrict() {
-  const selector = document.getElementById("districtSelector");
-  const selectedDistrict = selector.value;
+  console.log("changeDistrict() called");
 
-  if (selectedDistrict) {
+  const selector = document.getElementById("districtSelector");
+  if (!selector) {
+    console.error("District selector not found");
+    return;
+  }
+
+  const selectedDistrict = selector.value;
+  console.log("Selected district:", selectedDistrict);
+  console.log("Current district:", currentDistrict);
+
+  if (selectedDistrict && selectedDistrict !== currentDistrict) {
     // Update the current district
     currentDistrict = selectedDistrict;
 
@@ -627,9 +636,18 @@ function changeDistrict() {
 
     // Get current page path and reload with selected district
     const currentPath = window.location.pathname;
-    window.location.href = `${currentPath}?district=${encodeURIComponent(
+    const newUrl = `${currentPath}?district=${encodeURIComponent(
       selectedDistrict
     )}`;
+    console.log("Redirecting to:", newUrl);
+
+    window.location.href = newUrl;
+  } else if (selectedDistrict === currentDistrict) {
+    console.log("Same district selected, no action needed");
+    showNotification(`Already viewing ${selectedDistrict}`, "info");
+  } else {
+    console.error("No district selected");
+    showNotification("Please select a district", "warning");
   }
 }
 
